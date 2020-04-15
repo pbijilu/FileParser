@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace FileParser
 {
@@ -14,8 +15,6 @@ namespace FileParser
 
         public List<string> parsedInfo { get; set; }
         public List<(string, decimal)> validInfo { get; set; }
-        public int StringNum { get; set; }
-        public bool IsValidated { get; set; }
 
         public void ReadFromFile()
         {
@@ -34,31 +33,41 @@ namespace FileParser
         }
         public void Validate(int stringNum)
         {
+            Regex regex = new Regex("^(\".*\"),(\\d*\\.*\\d*)");
+            string[] stringPair = new string[2];
+
             for (int i = stringNum; i < parsedInfo.Count; i++)
             {
-                string[] stringPair = parsedInfo[i].Split(",");
+                MatchCollection matches = regex.Matches(parsedInfo[i]);
 
-                if (stringPair.Length != 2)
-                    throw new MissingSeparatorException(i);
-                else {
-                    if (stringPair[0] == "" && stringPair[1] == "")
-                        throw new EmptyStringException(i);
-                    else if (stringPair[0] == "")
-                        throw new ItemIsEmptyException(i);
-                    else if (stringPair[1] == "")
-                        throw new PriceIsEmptyException(i);
-                    else
+                if (matches.Count > 0)
+                {
+                    foreach (Match match in matches)
                     {
-                        try
-                        {
-                            validInfo.Add((stringPair[0], Decimal.Parse(stringPair[1])));
-                        }
-                        catch (FormatException e)
-                        {
-                            throw new PriceIsNotANumberException(i);
-                        }
+                        stringPair[0] = match.Groups[1].Value;
+                        stringPair[1] = match.Groups[2].Value;
                     }
                 }
+                else stringPair = parsedInfo[i].Split(",");
+
+                if (stringPair.Length < 2)
+                    throw new MissingSeparatorException(i);
+
+                if (stringPair[0] == "" && stringPair[1] == "")
+                    throw new EmptyStringException(i);
+                else if (stringPair[0] == "")
+                    throw new ItemIsEmptyException(i);
+                else if (stringPair[1] == "")
+                    throw new PriceIsEmptyException(i);
+
+                try
+                {
+                    validInfo.Add((stringPair[0], Decimal.Parse(stringPair[1])));
+                }
+                catch (FormatException)
+                {
+                    throw new PriceIsNotANumberException(i);
+                }        
             }
         }
         public void WriteToFile()
@@ -68,8 +77,7 @@ namespace FileParser
                 int counter = 0;
                 foreach (var info in validInfo)
                 {
-                    string writableInfo = $"{info.Item1},{info.Item2}";
-                    file.WriteLine(writableInfo);
+                    file.WriteLine($"{info.Item1},{info.Item2}");
                     counter++;
                 }
                 Console.WriteLine($"{counter} lines written.");
@@ -78,27 +86,30 @@ namespace FileParser
 
         public void Start()
         {
+            int stringNum = 0;
+            bool isValidated = false;
+
             try
             {
                 ReadFromFile();
             }
-            catch (FileNotFoundException e)
+            catch (FileNotFoundException)
             {
                 Console.WriteLine("This is a message from Parser.cs. Please stand by while we throw you to Program.Main :)");
                 throw;
             }
-            catch (IOException e)
+            catch (IOException)
             {
                 Console.WriteLine("This is a message from Parser.cs. Please stand by while we throw you to Program.Main :)");
                 throw;
             }
 
-            while (!IsValidated)
+            while (!isValidated)
             {
                 try
                 {
-                    Validate(StringNum);
-                    IsValidated = true;
+                    Validate(stringNum);
+                    isValidated = true;
                 }
                 catch (ParsingException e)
                 {
@@ -109,7 +120,7 @@ namespace FileParser
                         file.WriteLine($"{e.Message} at string {e.StringNum + 1}");
                     }
 
-                    StringNum = e.StringNum + 1;
+                    stringNum = e.StringNum + 1;
                 }
             }
 
@@ -117,7 +128,7 @@ namespace FileParser
             {
                 WriteToFile();
             }
-            catch (IOException e)
+            catch (IOException)
             {
                 Console.WriteLine("This is a message from Parser.cs. Please stand by while we throw you to Program.Main :)");
                 throw;
@@ -128,8 +139,6 @@ namespace FileParser
         {
             parsedInfo = new List<string>();
             validInfo = new List<(string, decimal)>();
-            IsValidated = false;
-            StringNum = 0;
         }
     }
 }

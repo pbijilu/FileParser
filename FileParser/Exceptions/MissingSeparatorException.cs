@@ -6,7 +6,7 @@ namespace FileParser.Exceptions
 {
     public class MissingSeparatorException : ParsingException
     {
-        public MissingSeparatorException(int stringNum) : base("Missing separator", stringNum)
+        public MissingSeparatorException(int stringNum) : base("Separator is missing", stringNum)
         {
 
         }
