@@ -92,6 +92,26 @@ namespace FileParser
             try
             {
                 ReadFromFile();
+
+                while (!isValidated)
+                    try
+                    {
+                        Validate(stringNum);
+                        isValidated = true;
+                    }
+                    catch (ParsingException e)
+                    {
+                        Console.WriteLine($"{e.Message} at string {e.StringNum + 1}");
+
+                        using (StreamWriter file = File.AppendText(textFileToLog))
+                        {
+                            file.WriteLine($"{e.Message} at string {e.StringNum + 1}");
+                        }
+
+                        stringNum = e.StringNum + 1;
+                    }
+
+                WriteToFile();
             }
             catch (FileNotFoundException)
             {
@@ -102,37 +122,7 @@ namespace FileParser
             {
                 Console.WriteLine("This is a message from Parser.cs. Please stand by while we throw you to Program.Main :)");
                 throw;
-            }
-
-            while (!isValidated)
-            {
-                try
-                {
-                    Validate(stringNum);
-                    isValidated = true;
-                }
-                catch (ParsingException e)
-                {
-                    Console.WriteLine($"{e.Message} at string {e.StringNum + 1}");
-
-                    using (StreamWriter file = File.AppendText(textFileToLog))
-                    {
-                        file.WriteLine($"{e.Message} at string {e.StringNum + 1}");
-                    }
-
-                    stringNum = e.StringNum + 1;
-                }
-            }
-
-            try
-            {
-                WriteToFile();
-            }
-            catch (IOException)
-            {
-                Console.WriteLine("This is a message from Parser.cs. Please stand by while we throw you to Program.Main :)");
-                throw;
-            }
+            }     
         }
 
         public Parser()
